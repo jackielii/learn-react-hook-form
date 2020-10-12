@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -10,7 +11,6 @@ import {
   makeStyles,
 } from "@material-ui/core";
 import { navigate, RouteComponentProps, Router } from "@reach/router";
-import React from "react";
 import {
   Controller,
   FormProvider,
@@ -18,13 +18,6 @@ import {
   useFormContext,
 } from "react-hook-form";
 import { EditFields } from "./EditFields";
-
-export type View = {
-  id: number;
-  name: string;
-  label: string;
-  fields: Field[];
-};
 
 export type Field = {
   id: number;
@@ -38,6 +31,13 @@ export type Field = {
   readOnly: boolean;
   foreignKey: boolean;
   primaryName: boolean;
+};
+
+export type View = {
+  id: number;
+  name: string;
+  label: string;
+  fields: Field[];
 };
 
 export const defaultValues: View = {
@@ -63,11 +63,40 @@ for (let i = 1; i < 50; i++) {
   });
 }
 
+function mockData(): View {
+  return {
+    ...defaultValues,
+    fields: defaultValues.fields.map((f) => ({
+      ...f,
+      showInGrid: Math.random() > 0.5,
+      showInPanel: Math.random() > 0.5,
+      showInFilter: Math.random() > 0.5,
+      showInBrowser: Math.random() > 0.5,
+      partOfKey: Math.random() > 0.5,
+      required: Math.random() > 0.5,
+      readOnly: Math.random() > 0.5,
+      foreignKey: Math.random() > 0.5,
+      primaryName: Math.random() > 0.5,
+    })),
+  };
+}
+
 function App() {
+  // react-hook-form uses the instance of the data, hence the deep cloning
+  const [data, setData] = useState(JSON.parse(JSON.stringify(defaultValues)));
   const formMethods = useForm({
-    defaultValues,
+    defaultValues: data,
+    // somehow shouldUnregister needs to be here, otherwise fields
+    // would be empty
     shouldUnregister: false,
   });
+  useEffect(() => {
+    // mock server data fetch
+    setTimeout(() => setData(mockData()), 1000);
+  }, []);
+  useEffect(() => {
+    reset(data);
+  }, [data, reset]);
   const { reset, formState, handleSubmit, setValue } = formMethods;
   return (
     <FormProvider {...formMethods}>
@@ -97,7 +126,7 @@ function App() {
             disabled={!formState.isDirty}
             color="primary"
             onClick={() => {
-              reset(defaultValues);
+              reset(JSON.parse(JSON.stringify(defaultValues)));
               // reset doesn't seem to reset nested values. setting them manually
               for (let i = 0; i < defaultValues.fields.length; i++) {
                 const field = defaultValues.fields[i];

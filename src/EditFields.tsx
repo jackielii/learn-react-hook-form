@@ -13,7 +13,7 @@ import {
   TableSortLabel,
 } from "@material-ui/core";
 import { Add, Close, Delete, Edit } from "@material-ui/icons";
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { useFormContext, UseFormMethods, useWatch } from "react-hook-form";
 import {
   Cell,
@@ -122,6 +122,7 @@ const fieldColumns: Column<Field>[] = [
       const { setValue, control } = formMethods;
       const key = `fields[${index}].${field}`;
       const value = useWatch({ name: key, control });
+      console.log(`watch row ${index} of column ${field}`);
       return (
         <Checkbox
           checked={value}
@@ -134,18 +135,31 @@ const fieldColumns: Column<Field>[] = [
     },
     sortType: booleanSort,
     disableFilters: true,
-    CheckAll: ({ column }: { column: Column<Field> }) => {
+    CheckAll: ({ column, data }: { column: Column<Field>; data: Field[] }) => {
       const formMethods = useFormContext();
       const values = formMethods.getValues().fields || empty;
       // reason why watchValues is not same as values is probably because
       // `watch` happened after `register`, and after register, it didn't
       // re-render, so watch never have a chance to get latest values
       // const watchValues = useWatch<Field[]>({
-      useWatch<Field[]>({
-        name: "fields",
+      const watchList = useMemo(() => {
+        const result: string[] = [];
+        for (let i = 0; i < data.length; i++) {
+          result.push(`fields[${i}].${column.id}`);
+        }
+        return result;
+      }, [column.id, data.length]);
+      // reason why watchValues is not same as values is probably because
+      // `watch` happened after `register`, and after register, it didn't
+      // re-render, so watch never have a chance to get latest values
+      // const watchValues = useWatch<Field.AsObject[]>({
+      console.log("watch all rows of column", column.id);
+      useWatch({
+        name: watchList,
         control: formMethods.control,
         defaultValue: empty,
       });
+
       const id = column.id as keyof Field;
       let all: boolean | undefined;
       let some: boolean | undefined;
